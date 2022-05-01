@@ -25,8 +25,8 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public publicSaleStartTime;
     uint256 public preSaleStartTime;
 
-    uint256 public publicSalePrice = 0.003 ether;
-    uint256 public preSalePrice = 0.01 ether;
+    uint256 public publicSalePrice;
+    uint256 public preSalePrice;
 
     bytes32 private root;
 
@@ -166,7 +166,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         require(verifyWhitelist(_leaf(msg.sender), proof), "Not whitelisted");
 
         _safeMint(msg.sender, quantity);
-        refundIfOver(publicSalePrice * quantity);
+        refundIfOver(preSalePrice * quantity);
     }
 
     function publicSaleMint(uint256 quantity)

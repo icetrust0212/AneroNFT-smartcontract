@@ -107,8 +107,8 @@ describe("AneroNFT", function () {
     });
 
     await nftContract.connect(_signer).startPreSale(ethers.utils.parseEther('0.02'));
-    let {proof} = verifyWhitelist(_minter.address);
-    await nftContract.connect(_minter).preSaleMint(5, proof, {
+    let {proof} = verifyWhitelist(_signer.address);
+    await nftContract.connect(_signer).preSaleMint(5, proof, {
       value: ethers.utils.parseEther('2')
     })
 

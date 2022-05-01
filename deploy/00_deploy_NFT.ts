@@ -9,7 +9,7 @@ const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { 
   const baseTokenURI = "https://gateway.pinata.com/";
   const root = calculate_whitelist_root();
 
-  const contractDeployed = await deploy('AneroNFT', {
+  const contractDeployed = await deploy('Anero', {
     from: deployer.address,
     log: true,
     skipIfAlreadyDeployed: true,

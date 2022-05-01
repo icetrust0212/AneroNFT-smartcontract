@@ -55,11 +55,24 @@ const config: CustomUserConfig = {
           }
         }
       },
+      {
+        version: "0.8.10",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
+      },
     ]
   },
   namedAccounts: {
     deployer: 0,
     minter: 1,
+    owner0: 5,
+    owner1: 2,
+    owner2: 3,
+    owner3: 4
   },
   defaultNetwork: "hardhat",
 
@@ -68,7 +81,7 @@ const config: CustomUserConfig = {
       hardfork: 'istanbul',
       accounts: {
         accountsBalance: utils.parseUnits('1', 36).toString(),
-        count: 5,
+        count: 10,
       },
       forking: {
         blockNumber: 14201600,

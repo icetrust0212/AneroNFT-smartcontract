@@ -23,6 +23,5 @@
     const leaf = keccak256(address);
     const proof = tree.getHexProof(leaf);
     const verified = tree.verify(proof, leaf, root);
-    console.log("leaf: ", leaf);
     return { proof, leaf, verified };
   };

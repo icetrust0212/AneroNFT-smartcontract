@@ -300,6 +300,10 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         _baseTokenURI = baseURI;
     }
 
+    function setPreSaleSigner(address signer) external onlyOwner {
+        preSaleSigner = signer;
+    }
+
     // withdraw ether
     function withdrawMoney() external onlyOwner nonReentrant {
         (bool success, ) = msg.sender.call{value: address(this).balance}("");

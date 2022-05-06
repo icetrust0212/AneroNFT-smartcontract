@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./ERC721A.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**************************************************
  * Anero.sol
@@ -21,6 +22,7 @@ import "./ERC721A.sol";
 
 contract Anero is Ownable, ERC721A, ReentrancyGuard {
     using Strings for uint256;
+    using ECDSA for bytes32;
 
     // Amount limit per wallet
     uint256 public maxAmountPerWallet;
@@ -53,8 +55,8 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public publicSalePrice;
     uint256 public preSalePrice;
 
-    // Merkle Root value for whitelist verification
-    bytes32 private root;
+    // Signer for whitelist verification
+    address private preSaleSigner;
 
     // metadata URI
     string private _baseTokenURI;
@@ -75,21 +77,18 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         @param collectionSize_ NFT collection size
         @param amountForAuctionSale_ Amount for Dutch Auction mint
         @param amountForPresale_ Amount for Presale mint
-        @param root_ Merkle tree root for presale verification
     */
     constructor(
         uint256 maxBatchSize_,
         uint256 collectionSize_,
         uint256 amountForAuctionSale_,
-        uint256 amountForPresale_,
-        bytes32 root_
+        uint256 amountForPresale_
     ) ERC721A("Anero", "Anero", maxBatchSize_, collectionSize_) {
         require(amountForAuctionSale_ + amountForPresale_ <= collectionSize_, "Invalid amounts");
 
         maxAmountPerWallet = maxBatchSize_;
         amountForAuctionSale = amountForAuctionSale_;
         amountForPresale = amountForPresale_;
-        root = root_;
     }
 
     modifier callerIsUser() {
@@ -210,7 +209,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     function preSaleMint(
       uint256 quantity,
-      bytes32[] memory proof
+      bytes calldata signature
     )
         external
         payable
@@ -227,7 +226,16 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
             "Exceeds limit"
         );
 
-        require(verifyWhitelist(_leaf(msg.sender), proof), "Not whitelisted.");
+        require(
+            preSaleSigner ==
+                keccak256(
+                    abi.encodePacked(
+                        "\x19Ethereum Signed Message:\n32",
+                        bytes32(uint256(uint160(msg.sender)))
+                    )
+                ).recover(signature),
+            "Not whitelisted."
+        );
 
         currentPresaleAmount ++;
         _safeMint(msg.sender, quantity);
@@ -259,41 +267,6 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         if (msg.value > price) {
             payable(msg.sender).transfer(msg.value - price);
         }
-    }
-
-    function verifyWhitelist(bytes32 leaf, bytes32[] memory proof)
-        public
-        view
-        returns (bool)
-    {
-        bytes32 computedHash = leaf;
-
-        for (uint256 i = 0; i < proof.length; i++) {
-            bytes32 proofElement = proof[i];
-
-            if (computedHash < proofElement) {
-                // Hash(current computed hash + current element of the proof)
-                computedHash = keccak256(
-                    abi.encodePacked(computedHash, proofElement)
-                );
-            } else {
-                // Hash(current element of the proof + current computed hash)
-                computedHash = keccak256(
-                    abi.encodePacked(proofElement, computedHash)
-                );
-            }
-        }
-
-        // Check if the computed hash (root) is equal to the provided root
-        return computedHash == root;
-    }
-
-    function _leaf(address account) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(account));
-    }
-
-    function setWhitelistRoot(bytes32 root_) external onlyOwner {
-        root = root_;
     }
 
     function tokenURI(uint256 tokenId)

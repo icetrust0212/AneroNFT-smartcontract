@@ -1,0 +1,81 @@
+
+cygaar
+@cygaar_dev
+·
+16h
+Let's start with some variable naming:
+There are several vars (DA_STARTING_TIMESTAMP, DA_FINAL_PRICE, BASE_URI) that shouldn't be all-caps bc they aren't constants: https://docs.soliditylang.org/en/v0.5.3/style-guide.html#constants. Not a big deal, but I like consistent naming in my code.
+cygaar
+@cygaar_dev
+·
+16h
+Looking at the TokenBatchPriceData struct, there's a uint8 for quantityMinted which provides no benefit over the original uin128. The point of using smaller integers than uin256 is to pack structs together so more vars can fit in one storage slot (32 bytes).
+cygaar
+@cygaar_dev
+·
+16h
+In this case, there is already an 128 bit integer in the first half of the struct which means we have 128 bits left. There is no reason to make quantityMinted 8 bits, and it should be kept as 128 bits so the full struct takes up the full storage slot.
+cygaar
+@cygaar_dev
+·
+16h
+PUBLIC_WL_MINTED should be made a uint256 because the EVM will now have to cast this value into a uint256 to store it properly into a storage slot.
+cygaar
+@cygaar_dev
+·
+16h
+On this line WL_STARTING_TIMESTAMP = DA_STARTING_TIMESTAMP + 86400, they're trying to say the wl start time is a day after the DA. Luckily solidity provides primitives for hours/days so we could make the code a bit cleaner: https://docs.soliditylang.org/en/v0.4.21/units-and-global-variables.html#time-units
+cygaar
+@cygaar_dev
+·
+16h
+Minor stylistic change, require(DA_ACTIVE == true, ...) be written as require(DA_ACTIVE, ...)
+cygaar
+@cygaar_dev
+·
+16h
+In the signature check this line bytes32(uint256(uint160(msg.sender))) is unnecessary and wastes gas doing extra casting. None of the casting is necessary here since abi.encodePacked can concat address types.
+cygaar
+@cygaar_dev
+·
+16h
+In general < is cheaper than <=, so a line like require(quantity <= 2) can be rewritten as require(quantity < 3).
+cygaar
+@cygaar_dev
+·
+16h
+Lines 157-162 can be moved below the final price check. This saves gas in the scenario that the final price is set so the DA price logic can be skipped over.
+
+(DA_FINAL_PRICE / 100) * 50) is called twice and can easily be done once and saved to a local var to save gas.
+cygaar
+@cygaar_dev
+·
+16h
+_safeMint should be replaced with _mint. In most scenarios you do not need _safeMint unless you're expecting a smart contract minting to do something upon receipt of tokens. Doing this swap should save some more gas.
+cygaar
+@cygaar_dev
+·
+16h
+mintWL, mintDutchAuction, and withdrawFunds should be made external functions since they're only called externally
+cygaar
+@cygaar_dev
+·
+16h
+In setTeamMint, the amount should be a uint256 because _teamList is mapping of address => uint256. By making it a uint8, you're wasting gas casting the value to uint256.
+cygaar
+@cygaar_dev
+·
+16h
+setWLSupply(uint16 quantity) should be setWLSupply(uint256 quantity) because WL_QUANTITY is a uint256
+cygaar
+@cygaar_dev
+·
+16h
+In withdrawFunds there is no check that the funds were actually withdrawn. It's good practice to ensure that a transfer of funds was successful.
+cygaar
+@cygaar_dev
+·
+16h
+Overall a lot of small things that I would change about the contract, but it should be good to mint from and the funds should be withdrawable later on.
+I think the testnet txns cost about 140k for one token so it won't be that cheap if a gas war does happen.
+Good luck everyone

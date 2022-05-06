@@ -6,13 +6,36 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./ERC721A.sol";
 
+/**************************************************
+ * Anero.sol
+ *
+ * Created for Anero by: Patrick
+ * Audited by: Adnan, Jill
+ * Refered from: Azuki, Ghost collection
+ * Dutch Auction style inspired by: Azuki
+ *
+ * Special thanks goes to: Adnan, Jill
+ ***************************************************
+ */
+
+
 contract Anero is Ownable, ERC721A, ReentrancyGuard {
     using Strings for uint256;
-    uint256 public maxPerAddressDuringMint;
 
+    // Amount limit per wallet
+    uint256 public maxAmountPerWallet;
+
+    // Amount limit for auction
     uint256 public amountForAuctionSale;
+    // Amount limit for presale (whitelist sale)
     uint256 public amountForPresale;
 
+    // Current minted amount for Dutch Auction
+    uint256 public currentAuctionAmount;
+    // Current minted amount for presale
+    uint256 public currentPresaleAmount;
+
+    // Details for Dutch auction sale
     uint256 public constant AUCTION_START_PRICE = 0.025 ether;
     uint256 public constant AUCTION_END_PRICE = 0.005 ether;
     uint256 public constant AUCTION_DURATION = 20 minutes;
@@ -21,19 +44,25 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         (AUCTION_START_PRICE - AUCTION_END_PRICE) /
             (AUCTION_DURATION / AUCTION_DROP_INTERVAL);
 
+    // Start time for each mint types
     uint256 public auctionSaleStartTime;
     uint256 public publicSaleStartTime;
     uint256 public preSaleStartTime;
 
+    // Price for presale and public sale
     uint256 public publicSalePrice;
     uint256 public preSalePrice;
 
+    // Merkle Root value for whitelist verification
     bytes32 private root;
 
     // metadata URI
     string private _baseTokenURI;
 
+    bool public reveal;
+
     enum SalePhase {
+        None,
         AuctionSale,
         PreSale,
         PublicSale
@@ -41,6 +70,13 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     SalePhase public currentSalePhase = SalePhase.AuctionSale; // for frontend, web3
 
+    /**
+        @param maxBatchSize_ Max size for ERC721A batch mint.
+        @param collectionSize_ NFT collection size
+        @param amountForAuctionSale_ Amount for Dutch Auction mint
+        @param amountForPresale_ Amount for Presale mint
+        @param root_ Merkle tree root for presale verification
+    */
     constructor(
         uint256 maxBatchSize_,
         uint256 collectionSize_,
@@ -50,7 +86,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     ) ERC721A("Anero", "Anero", maxBatchSize_, collectionSize_) {
         require(amountForAuctionSale_ + amountForPresale_ <= collectionSize_, "Invalid amounts");
 
-        maxPerAddressDuringMint = maxBatchSize_;
+        maxAmountPerWallet = maxBatchSize_;
         amountForAuctionSale = amountForAuctionSale_;
         amountForPresale = amountForPresale_;
         root = root_;
@@ -63,8 +99,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     modifier whenPublicSaleIsOn() {
         require(
-            publicSaleStartTime != 0 &&
-                publicSalePrice > 0 &&
+                currentSalePhase == SalePhase.PublicSale &&
                 block.timestamp >= publicSaleStartTime,
             "Public sale is not started yet"
         );
@@ -73,8 +108,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     modifier whenPreSaleOn() {
         require(
-            preSaleStartTime != 0 &&
-                preSalePrice > 0 &&
+                currentSalePhase == SalePhase.PreSale &&
                 block.timestamp >= preSaleStartTime,
             "Presale is not started yet"
         );
@@ -82,38 +116,65 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     }
 
     modifier whenAuctionSaleIsOn() {
+        require(currentSalePhase == SalePhase.AuctionSale, "Dutch Auction is not activated.");
+
         require(
-            auctionSaleStartTime != 0 &&
+                
                 block.timestamp >= auctionSaleStartTime,
-            "Auction sale is not started yet"
+                "Auction sale is not started yet"
+        );
+
+        require(block.timestamp <= auctionSaleStartTime + AUCTION_DURATION, 
+            "Auction sale is finished."
         );
         _;
     }
 
-    function startAuctionSale() external onlyOwner {
-        auctionSaleStartTime = block.timestamp;
+    function setReveal(bool value) external onlyOwner {
+        reveal = value;
+    }
+
+    // Activate Dutch auction
+    function setAuctionSaleActive() external onlyOwner {
+        require(
+            currentSalePhase != SalePhase.AuctionSale,
+            "Dutch Auction is already active."
+        );
         currentSalePhase = SalePhase.AuctionSale;
     }
 
-    function startPreSale(uint256 preSalePrice_) external onlyOwner {
-        auctionSaleStartTime = 0;
-        preSaleStartTime = block.timestamp;
-        preSalePrice = preSalePrice_;
+    // Activate presale
+    function setPreSaleActive() external onlyOwner {
+        require(
+            currentSalePhase != SalePhase.PreSale,
+            "Presale is already active."
+        );
         currentSalePhase = SalePhase.PreSale;
     }
 
-    function startPublicSale(uint256 publicSalePrice_) external onlyOwner {
-        auctionSaleStartTime = 0;
-        preSaleStartTime = 0;
-        publicSaleStartTime = block.timestamp;
-        publicSalePrice = publicSalePrice_;
+    // Activate public sale
+    function setPublicSaleActive() external onlyOwner {
+        require(
+            currentSalePhase != SalePhase.PublicSale,
+            "Public sale is already active."
+        );
         currentSalePhase = SalePhase.PublicSale;
     }
 
-    
+    function startAuctionSaleAt(uint256 startTime) external onlyOwner {
+        auctionSaleStartTime = startTime;
+    }
+
+    function startPreSaleAt(uint256 startTime) external onlyOwner {
+        preSaleStartTime = startTime;
+    }
+
+    function startPublicSaleAt(uint256 startTime) external onlyOwner {
+        publicSaleStartTime = startTime;
+    }
 
     function getAuctionPrice() public view returns (uint256) {
-        if (block.timestamp < auctionSaleStartTime) {
+        if (block.timestamp <= auctionSaleStartTime) {
             return AUCTION_START_PRICE;
         }
         if (block.timestamp - auctionSaleStartTime >= AUCTION_DURATION) {
@@ -125,6 +186,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         }
     }
 
+    // Dutch Auction is public sale.
     function auctionSaleMint(uint256 quantity)
         external
         payable
@@ -133,14 +195,16 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         nonReentrant
     {
         require(
-          totalSupply() + quantity <= amountForAuctionSale,
-          "reached max auction sale supply"
+            currentAuctionAmount + quantity <= amountForAuctionSale, 
+            "Reached max auction sale supply."
         );
         require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
+            numberMinted(msg.sender) + quantity <= maxAmountPerWallet,
             "Exceeds limit"
         );
+        currentAuctionAmount ++;
         _safeMint(msg.sender, quantity);
+
         refundIfOver(getAuctionPrice() * quantity);
     }
 
@@ -155,17 +219,19 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         nonReentrant
     {
         require(
-          totalSupply() + quantity <= amountForPresale,
-          "reached max auction sale supply"
+            currentPresaleAmount + quantity <= amountForPresale, 
+            "Reached max presale supply."
         );
         require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
+            numberMinted(msg.sender) + quantity <= maxAmountPerWallet,
             "Exceeds limit"
         );
 
-        require(verifyWhitelist(_leaf(msg.sender), proof), "Not whitelisted");
+        require(verifyWhitelist(_leaf(msg.sender), proof), "Not whitelisted.");
 
+        currentPresaleAmount ++;
         _safeMint(msg.sender, quantity);
+
         refundIfOver(preSalePrice * quantity);
     }
 
@@ -181,7 +247,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
             "reached max supply"
         );
         require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
+            numberMinted(msg.sender) + quantity <= maxAmountPerWallet,
             "Exceeds limit"
         );
         _safeMint(msg.sender, quantity);
@@ -242,6 +308,10 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
             "ERC721Metadata: URI query for nonexistent token"
         );
 
+        if (!reveal) {
+            return "https://gateway.pinata.com/";
+        }
+
         string memory baseURI = _baseURI();
         return
             bytes(baseURI).length > 0
@@ -264,13 +334,6 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     }
 
     // utility functions
-    function setOwnersExplicit(uint256 quantity)
-        external
-        onlyOwner
-        nonReentrant
-    {
-        _setOwnersExplicit(quantity);
-    }
 
     function numberMinted(address owner) public view returns (uint256) {
         return _numberMinted(owner);

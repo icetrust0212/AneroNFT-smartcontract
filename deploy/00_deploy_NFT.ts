@@ -4,8 +4,10 @@ import { calculate_whitelist_root } from '../whitelist/utils';
 const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { getSigners }, network }) {
   const deployer = (await getSigners())[0];
  
-  const maxBatchSize_ = 20;
-  const collectionSize_ = 10000;
+  const maxBatchSize_ = 5;
+  const collectionSize_ = 7777;
+  const amountForAuctionSale = 3000;
+  const amountForPresale = 2000;
   const baseTokenURI = "https://gateway.pinata.com/";
   const root = calculate_whitelist_root();
 
@@ -16,8 +18,8 @@ const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { 
     args: [
       maxBatchSize_,
       collectionSize_,
-      baseTokenURI,
-      root
+      amountForAuctionSale,
+      amountForPresale
     ]
   });
   console.log('npx hardhat verify --network '+ network.name +  ' ' + contractDeployed.address);

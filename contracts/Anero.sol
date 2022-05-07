@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -31,6 +31,8 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public amountForAuctionSale;
     // Amount limit for presale (whitelist sale)
     uint256 public amountForPresale;
+    // Amount for dev mint
+    uint256 public amountForDevs;
 
     // Current minted amount for Dutch Auction
     uint256 public currentAuctionAmount;
@@ -38,8 +40,8 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public currentPresaleAmount;
 
     // Details for Dutch auction sale
-    uint256 public constant AUCTION_START_PRICE = 0.025 ether;
-    uint256 public constant AUCTION_END_PRICE = 0.005 ether;
+    uint256 public constant AUCTION_START_PRICE = 2 ether;
+    uint256 public constant AUCTION_END_PRICE = 0.05 ether;
     uint256 public constant AUCTION_DURATION = 20 minutes;
     uint256 public constant AUCTION_DROP_INTERVAL = 5 minutes;
     uint256 public constant AUCTION_DROP_PER_STEP =
@@ -52,8 +54,8 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public preSaleStartTime;
 
     // Price for presale and public sale
-    uint256 public publicSalePrice;
-    uint256 public preSalePrice;
+    uint256 public constant PUBLIC_SALE_PRICE = 2 ether;
+    uint256 public constant PRE_SALE_PRICE = 1 ether;
 
     // Signer for whitelist verification
     address private preSaleSigner;
@@ -70,25 +72,29 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         PublicSale
     }
 
-    SalePhase public currentSalePhase = SalePhase.AuctionSale; // for frontend, web3
+    // Current Sale phase
+    SalePhase public currentSalePhase = SalePhase.None;
 
     /**
         @param maxBatchSize_ Max size for ERC721A batch mint.
         @param collectionSize_ NFT collection size
         @param amountForAuctionSale_ Amount for Dutch Auction mint
         @param amountForPresale_ Amount for Presale mint
+        @param amountForDevs_ Amount for Presale mint
     */
     constructor(
         uint256 maxBatchSize_,
         uint256 collectionSize_,
         uint256 amountForAuctionSale_,
-        uint256 amountForPresale_
+        uint256 amountForPresale_,
+        uint256 amountForDevs_
     ) ERC721A("Anero", "Anero", maxBatchSize_, collectionSize_) {
         require(amountForAuctionSale_ + amountForPresale_ <= collectionSize_, "Invalid amounts");
 
         maxAmountPerWallet = maxBatchSize_;
         amountForAuctionSale = amountForAuctionSale_;
         amountForPresale = amountForPresale_;
+        amountForDevs = amountForDevs_;
     }
 
     modifier callerIsUser() {
@@ -133,31 +139,13 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         reveal = value;
     }
 
-    // Activate Dutch auction
-    function setAuctionSaleActive() external onlyOwner {
+    // Set sale mode
+    function setSaleMode(SalePhase phase) external onlyOwner {
         require(
-            currentSalePhase != SalePhase.AuctionSale,
-            "Dutch Auction is already active."
+            currentSalePhase != phase,
+            "Already active."
         );
-        currentSalePhase = SalePhase.AuctionSale;
-    }
-
-    // Activate presale
-    function setPreSaleActive() external onlyOwner {
-        require(
-            currentSalePhase != SalePhase.PreSale,
-            "Presale is already active."
-        );
-        currentSalePhase = SalePhase.PreSale;
-    }
-
-    // Activate public sale
-    function setPublicSaleActive() external onlyOwner {
-        require(
-            currentSalePhase != SalePhase.PublicSale,
-            "Public sale is already active."
-        );
-        currentSalePhase = SalePhase.PublicSale;
+        currentSalePhase = phase;
     }
 
     function startAuctionSaleAt(uint256 startTime) external onlyOwner {
@@ -170,6 +158,10 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     function startPublicSaleAt(uint256 startTime) external onlyOwner {
         publicSaleStartTime = startTime;
+    }
+
+    function endSale() external onlyOwner {
+        currentSalePhase = SalePhase.None;
     }
 
     function getAuctionPrice() public view returns (uint256) {
@@ -226,21 +218,20 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
             "Exceeds limit"
         );
 
-        require(
-            preSaleSigner ==
-                keccak256(
-                    abi.encodePacked(
-                        "\x19Ethereum Signed Message:\n32",
-                        bytes32(uint256(uint160(msg.sender)))
-                    )
-                ).recover(signature),
-            "Not whitelisted."
-        );
+        verifySigner(signature);
 
         currentPresaleAmount ++;
         _safeMint(msg.sender, quantity);
 
-        refundIfOver(preSalePrice * quantity);
+        refundIfOver(PRE_SALE_PRICE * quantity);
+    }
+
+    function verifySigner(bytes calldata signature) 
+        public view {
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender));
+        bytes32 message = ECDSA.toEthSignedMessageHash(hash);
+        address receivedAddress = ECDSA.recover(message, signature);
+        require(receivedAddress != address(0) && receivedAddress == preSaleSigner);
     }
 
     function publicSaleMint(uint256 quantity)
@@ -259,7 +250,25 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
             "Exceeds limit"
         );
         _safeMint(msg.sender, quantity);
-        refundIfOver(publicSalePrice * quantity);
+        refundIfOver(PUBLIC_SALE_PRICE * quantity);
+    }
+
+    // For marketing etc.
+    function devMint(uint256 quantity) external onlyOwner {
+        require(
+            totalSupply() + quantity <= amountForDevs,
+            "Exceeds dev mint amount."
+        );
+        require(
+            quantity % maxBatchSize == 0,
+            "can only mint a multiple of the maxBatchSize"
+        );
+
+        uint256 numChunks = quantity / maxBatchSize;
+
+        for (uint256 i = 0; i < numChunks; i++) {
+            _safeMint(msg.sender, maxBatchSize);
+        }
     }
 
     function refundIfOver(uint256 price) private {

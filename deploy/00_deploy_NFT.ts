@@ -8,6 +8,7 @@ const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { 
   const collectionSize_ = 7777;
   const amountForAuctionSale = 3000;
   const amountForPresale = 2000;
+  const amountForDevs = 100;
   const baseTokenURI = "https://gateway.pinata.com/";
   const root = calculate_whitelist_root();
 
@@ -19,9 +20,11 @@ const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { 
       maxBatchSize_,
       collectionSize_,
       amountForAuctionSale,
-      amountForPresale
+      amountForPresale,
+      amountForDevs
     ]
   });
+
   console.log('npx hardhat verify --network '+ network.name +  ' ' + contractDeployed.address);
 
 };
@@ -31,6 +34,6 @@ fn.skip = async (hre) => {
   const chain = parseInt(await hre.getChainId());
   return chain != 1;
 };
-fn.tags = ['AneroNFT'];
+fn.tags = ['Anero'];
 
 export default fn;

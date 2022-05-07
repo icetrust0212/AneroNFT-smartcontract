@@ -3,7 +3,7 @@
 //
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -22,9 +22,15 @@ async function main() {
   console.log("Greeter deployed to:", greeter.address);
 }
 
+async function increaseTime(value: any) {
+  if (!ethers.BigNumber.isBigNumber(value)) {
+    value = ethers.BigNumber.from(value);
+  }
+  await ethers.provider.send('evm_increaseTime', [value.toNumber()]);
+  await ethers.provider.send('evm_mine', [0x1]);
+}
+
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+
+increaseTime(60 * 8) // increase

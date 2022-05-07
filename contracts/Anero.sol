@@ -40,13 +40,13 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public currentPresaleAmount;
 
     // Details for Dutch auction sale
-    uint256 public constant AUCTION_START_PRICE = 2 ether;
-    uint256 public constant AUCTION_END_PRICE = 0.05 ether;
+    uint256 public constant AUCTION_START_PRICE = 1 ether;
+    uint256 public constant AUCTION_END_PRICE = 0.15 ether;
     uint256 public constant AUCTION_DURATION = 20 minutes;
     uint256 public constant AUCTION_DROP_INTERVAL = 5 minutes;
     uint256 public constant AUCTION_DROP_PER_STEP =
         (AUCTION_START_PRICE - AUCTION_END_PRICE) /
-            (AUCTION_DURATION / AUCTION_DROP_INTERVAL);
+            (AUCTION_DURATION / AUCTION_DROP_INTERVAL - 1);
 
     // Start time for each mint types
     uint256 public auctionSaleStartTime;

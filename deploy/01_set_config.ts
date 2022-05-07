@@ -14,24 +14,24 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
   const publicSaleStartTime = currentTime + 300;
 
   //Activate auction
-  try {
-    await execute(
-      'Anero',
-      {from: deployer.address, log: true},
-      'setAuctionSaleActive'
-    );
-  } catch(e) {
-    console.log(e);
-  }
+  // try {
+  //   await execute(
+  //     'Anero',
+  //     {from: deployer.address, log: true},
+  //     'setAuctionSaleActive'
+  //   );
+  // } catch(e) {
+  //   console.log(e);
+  // }
   
 
   // set auction start time
-  await execute(
-    'Anero',
-    {from: deployer.address, log: true},
-    'startAuctionSaleAt',
-    currentTime
-  )
+  // await execute(
+  //   'Anero',
+  //   {from: deployer.address, log: true},
+  //   'startAuctionSaleAt',
+  //   currentTime
+  // )
 
   // set presale start time
   await execute(
@@ -42,12 +42,12 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
   )
 
   // set public sale start time
-  await execute(
-    'Anero',
-    {from: deployer.address, log: true},
-    'startPublicSaleAt',
-    publicSaleStartTime
-  )
+  // await execute(
+  //   'Anero',
+  //   {from: deployer.address, log: true},
+  //   'startPublicSaleAt',
+  //   publicSaleStartTime
+  // )
 
   //set presale signer
   await execute(
@@ -56,43 +56,6 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
     'setPreSaleSigner',
     signerAddress
   );
-
-  setTimeout(async () => {
-    await execute(
-      'Anero',
-      {from: deployer.address, log: true},
-      'setPreSaleActive'
-    );
-    
-  },  10 * 1000)
-
-  // setTimeout(async () => {
-  //   await execute(
-  //     'Anero',
-  //     {from: deployer.address, log: true},
-  //     'setPublicSaleActive'
-  //   );
-    
-  // },  300 * 1000);
-
-  // setTimeout(async () => {
-  //   await execute(
-  //     'Anero',
-  //     {from: deployer.address, log: true},
-  //     'endSale'
-  //   );
-    
-  // },  600 * 1000)
-  
-  // const moveTime = async (timeInSeconds: number) => {
-  //   await network.provider.send("evm_increaseTime", [timeInSeconds]);
-  //   await network.provider.send("hardhat_mine", ["0x1"]);
-  // }
-
-  // setInterval(async () => {
-  //   console.log('timer: ', await provider.getBlock("latest"))
-  //   await moveTime(10);
-  // }, 10000);
 };
 fn.skip = async (hre) => {
   return false;

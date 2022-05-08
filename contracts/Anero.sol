@@ -61,7 +61,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     address private preSaleSigner;
 
     // metadata URI
-    string private _baseTokenURI;
+    string private _baseTokenURI="https://gateway.pinata.cloud/ipfs/QmchQb5AmN17JyLDMFimADLqvJ6o9iy3mJseDLQcwqxWcy/";
 
     bool public reveal;
 
@@ -291,7 +291,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         );
 
         if (!reveal) {
-            return "https://gateway.pinata.com/";
+            return "https://gateway.pinata.cloud/ipfs/QmQTFBL4DENFgqGU2VZPy4GZAj2MTmzDdsoDjrS46AkHxT";
         }
 
         string memory baseURI = _baseURI();

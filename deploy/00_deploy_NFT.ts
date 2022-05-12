@@ -9,14 +9,18 @@ const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { 
   const amountForAuctionSale = 3000;
   const amountForPresale = 2000;
   const amountForDevs = 100;
-  const baseTokenURI = "https://gateway.pinata.com/";
+  const baseTokenURI = "https://gateway.pinata.cloud/ipfs/QmchQb5AmN17JyLDMFimADLqvJ6o9iy3mJseDLQcwqxWcy/";
+  const placeHolderURI = "";
+
   const root = calculate_whitelist_root();
 
   const contractDeployed = await deploy('Anero', {
     from: deployer.address,
     log: true,
-    skipIfAlreadyDeployed: true,
+    skipIfAlreadyDeployed: false,
     args: [
+      baseTokenURI,
+      placeHolderURI,
       maxBatchSize_,
       collectionSize_,
       amountForAuctionSale,

@@ -34,12 +34,12 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
   // )
 
   // set presale start time
-  await execute(
-    'Anero',
-    {from: deployer.address, log: true},
-    'startPreSaleAt',
-    preSaleStartTime
-  )
+  // await execute(
+  //   'Anero',
+  //   {from: deployer.address, log: true},
+  //   'startPreSaleAt',
+  //   preSaleStartTime
+  // )
 
   // set public sale start time
   // await execute(

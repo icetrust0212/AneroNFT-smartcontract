@@ -40,7 +40,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public currentPresaleAmount;
 
     // Details for Dutch auction sale
-    uint256 public constant AUCTION_START_PRICE = 1 ether;
+    uint256 public constant AUCTION_START_PRICE = 0.3 ether;
     uint256 public constant AUCTION_END_PRICE = 0.15 ether;
     uint256 public constant AUCTION_DURATION = 20 minutes;
     uint256 public constant AUCTION_DROP_INTERVAL = 5 minutes;
@@ -54,14 +54,15 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public preSaleStartTime;
 
     // Price for presale and public sale
-    uint256 public constant PUBLIC_SALE_PRICE = 2 ether;
-    uint256 public constant PRE_SALE_PRICE = 1 ether;
+    uint256 public constant PUBLIC_SALE_PRICE = 0.5 ether;
+    uint256 public constant PRE_SALE_PRICE = 0.2 ether;
 
     // Signer for whitelist verification
     address private preSaleSigner;
 
     // metadata URI
-    string private _baseTokenURI="https://gateway.pinata.cloud/ipfs/QmchQb5AmN17JyLDMFimADLqvJ6o9iy3mJseDLQcwqxWcy/";
+    string private _baseTokenURI;
+    string private _placeHolderURI;
 
     bool public reveal;
 
@@ -83,6 +84,8 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         @param amountForDevs_ Amount for Presale mint
     */
     constructor(
+        string memory _baseURIString,
+        string memory _placeholder,
         uint256 maxBatchSize_,
         uint256 collectionSize_,
         uint256 amountForAuctionSale_,
@@ -90,6 +93,9 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         uint256 amountForDevs_
     ) ERC721A("Anero", "Anero", maxBatchSize_, collectionSize_) {
         require(amountForAuctionSale_ + amountForPresale_ <= collectionSize_, "Invalid amounts");
+
+        _baseTokenURI = _baseURIString;
+        _placeHolderURI = _placeholder;
 
         maxAmountPerWallet = maxBatchSize_;
         amountForAuctionSale = amountForAuctionSale_;
@@ -104,34 +110,22 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     modifier whenPublicSaleIsOn() {
         require(
-                currentSalePhase == SalePhase.PublicSale &&
-                block.timestamp >= publicSaleStartTime,
-            "Public sale is not started yet"
+                getCurrentSaleMode() == SalePhase.PublicSale, 
+            "Public sale is not live."
         );
         _;
     }
 
     modifier whenPreSaleOn() {
         require(
-                currentSalePhase == SalePhase.PreSale &&
-                block.timestamp >= preSaleStartTime,
-            "Presale is not started yet"
+                getCurrentSaleMode() == SalePhase.PreSale,
+            "Presale is not active."
         );
         _;
     }
 
     modifier whenAuctionSaleIsOn() {
-        require(currentSalePhase == SalePhase.AuctionSale, "Dutch Auction is not activated.");
-
-        require(
-                
-                block.timestamp >= auctionSaleStartTime,
-                "Auction sale is not started yet"
-        );
-
-        require(block.timestamp <= auctionSaleStartTime + AUCTION_DURATION, 
-            "Auction sale is finished."
-        );
+        require(getCurrentSaleMode() == SalePhase.AuctionSale, "Auction is not live.");
         _;
     }
 
@@ -158,10 +152,6 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     function startPublicSaleAt(uint256 startTime) external onlyOwner {
         publicSaleStartTime = startTime;
-    }
-
-    function endSale() external onlyOwner {
-        currentSalePhase = SalePhase.None;
     }
 
     function getAuctionPrice() public view returns (uint256) {
@@ -291,7 +281,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         );
 
         if (!reveal) {
-            return "https://gateway.pinata.cloud/ipfs/QmQTFBL4DENFgqGU2VZPy4GZAj2MTmzDdsoDjrS46AkHxT";
+            return _placeHolderURI;
         }
 
         string memory baseURI = _baseURI();
@@ -305,8 +295,12 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         return _baseTokenURI;
     }
 
-    function setBaseURI(string calldata baseURI) external onlyOwner {
+    function setBaseURI(string memory baseURI) external onlyOwner {
         _baseTokenURI = baseURI;
+    }
+
+    function setPlaceHolderURI(string memory _uri) external onlyOwner {
+        _placeHolderURI = _uri;
     }
 
     function setPreSaleSigner(address signer) external onlyOwner {
@@ -332,4 +326,23 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     {
         return ownershipOf(tokenId);
     }
+
+    function getCurrentSaleMode() public view returns(SalePhase) {
+        if ( currentSalePhase == SalePhase.None) {
+            return SalePhase.None;
+        }
+
+        if (block.timestamp >= auctionSaleStartTime && block.timestamp <= auctionSaleStartTime + AUCTION_DURATION) {
+            return SalePhase.AuctionSale;
+        }
+
+        if (block.timestamp >= publicSaleStartTime) {
+            return SalePhase.PublicSale;
+        }
+        if (block.timestamp >= preSaleStartTime) {
+            return SalePhase.PreSale;
+        }
+        return SalePhase.None;
+    }
+
 }

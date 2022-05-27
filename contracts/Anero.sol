@@ -10,11 +10,8 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 /**************************************************
  * Anero.sol
  *
- * Created for Anero by: Patrick
+ * Created for Anero by: Patrick Kishi
  * Audited by: Adnan, Jill
- * Refered from: Azuki, Ghost collection
- * Dutch Auction style inspired by: Azuki
- *
  * Special thanks goes to: Adnan, Jill
  ***************************************************
  */
@@ -24,82 +21,64 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     using Strings for uint256;
     using ECDSA for bytes32;
 
-    // Amount limit per wallet
-    uint256 public maxAmountPerWallet;
-
-    // Amount limit for auction
-    uint256 public amountForAuctionSale;
-    // Amount limit for presale (whitelist sale)
-    uint256 public amountForPresale;
-    // Amount for dev mint
-    uint256 public amountForDevs;
-
-    // Current minted amount for Dutch Auction
-    uint256 public currentAuctionAmount;
-    // Current minted amount for presale
-    uint256 public currentPresaleAmount;
-
-    // Details for Dutch auction sale
-    uint256 public constant AUCTION_START_PRICE = 0.3 ether;
-    uint256 public constant AUCTION_END_PRICE = 0.15 ether;
-    uint256 public constant AUCTION_DURATION = 20 minutes;
-    uint256 public constant AUCTION_DROP_INTERVAL = 5 minutes;
-    uint256 public constant AUCTION_DROP_PER_STEP =
-        (AUCTION_START_PRICE - AUCTION_END_PRICE) /
-            (AUCTION_DURATION / AUCTION_DROP_INTERVAL - 1);
+    uint16 public amountForDevs;
+    uint16 public currentDevMintAmount;
 
     // Start time for each mint types
-    uint256 public auctionSaleStartTime;
-    uint256 public publicSaleStartTime;
     uint256 public preSaleStartTime;
+    uint256 public raffleSaleStartTime;
+    uint256 public reservedSaleStartTime;
 
-    // Price for presale and public sale
-    uint256 public constant PUBLIC_SALE_PRICE = 0.5 ether;
-    uint256 public constant PRE_SALE_PRICE = 0.2 ether;
+    // Price for presale and raffle sale, reserved sale
+    uint256 public preSalePrice = 0.15 ether;
+    uint256 public raffleSalePrice = 0.25 ether;
+    uint256 public reservedSalePrice = 0.25 ether;
 
-    // Signer for whitelist verification
-    address private preSaleSigner;
+    // Signer for verification
+    address private preSaleSigner1;
+    address private preSaleSigner2;
+    address private raffleSaleSigner;
+    address private reservedSaleSigner;
 
     // metadata URI
     string private _baseTokenURI;
     string private _placeHolderURI;
 
     bool public reveal;
+    bool public saleEnabled = false;
+
+    uint8 public limit1 = 1;
+    uint8 public limit2 = 2;
 
     enum SalePhase {
         None,
-        AuctionSale,
         PreSale,
-        PublicSale
+        RaffleSale,
+        ReservedSale
     }
 
-    // Current Sale phase
-    SalePhase public currentSalePhase = SalePhase.None;
+    // wallet address => sale phase => minted amount
+    mapping(address => mapping(SalePhase => uint8)) mintedAmountPerWallet;
 
     /**
+        @param _baseURIString metadata base url
+        @param _placeholder metadata before reveal
         @param maxBatchSize_ Max size for ERC721A batch mint.
         @param collectionSize_ NFT collection size
-        @param amountForAuctionSale_ Amount for Dutch Auction mint
-        @param amountForPresale_ Amount for Presale mint
         @param amountForDevs_ Amount for Presale mint
     */
     constructor(
         string memory _baseURIString,
         string memory _placeholder,
-        uint256 maxBatchSize_,
-        uint256 collectionSize_,
-        uint256 amountForAuctionSale_,
-        uint256 amountForPresale_,
-        uint256 amountForDevs_
-    ) ERC721A("Anero", "Anero", maxBatchSize_, collectionSize_) {
-        require(amountForAuctionSale_ + amountForPresale_ <= collectionSize_, "Invalid amounts");
+        uint16 maxBatchSize_,
+        uint16 collectionSize_,
+        uint16 amountForDevs_
+    ) ERC721A("Aneroverse", "ANERO", maxBatchSize_, collectionSize_) {
+        require(amountForDevs_ <= collectionSize, "Exceeds Max Supply.");
 
         _baseTokenURI = _baseURIString;
         _placeHolderURI = _placeholder;
 
-        maxAmountPerWallet = maxBatchSize_;
-        amountForAuctionSale = amountForAuctionSale_;
-        amountForPresale = amountForPresale_;
         amountForDevs = amountForDevs_;
     }
 
@@ -108,10 +87,10 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         _;
     }
 
-    modifier whenPublicSaleIsOn() {
+    modifier whenRaffleSaleIsOn() {
         require(
-                getCurrentSaleMode() == SalePhase.PublicSale, 
-            "Public sale is not live."
+                getCurrentSaleMode() == SalePhase.RaffleSale, 
+            "Raffle sale is not active."
         );
         _;
     }
@@ -124,73 +103,73 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         _;
     }
 
-    modifier whenAuctionSaleIsOn() {
-        require(getCurrentSaleMode() == SalePhase.AuctionSale, "Auction is not live.");
+    modifier whenReservedSaleOn() {
+        require(getCurrentSaleMode() == SalePhase.ReservedSale,
+            "Reserved sale is not active."
+        );
         _;
     }
+
+    // Admin actions
 
     function setReveal(bool value) external onlyOwner {
         reveal = value;
     }
 
-    // Set sale mode
-    function setSaleMode(SalePhase phase) external onlyOwner {
+    // Enable/Disable Sale
+    function toggleSale(bool value) external onlyOwner {
         require(
-            currentSalePhase != phase,
-            "Already active."
+            saleEnabled != value,
+            "Already setted."
         );
-        currentSalePhase = phase;
-    }
-
-    function startAuctionSaleAt(uint256 startTime) external onlyOwner {
-        auctionSaleStartTime = startTime;
+        saleEnabled = value;
     }
 
     function startPreSaleAt(uint256 startTime) external onlyOwner {
         preSaleStartTime = startTime;
     }
 
-    function startPublicSaleAt(uint256 startTime) external onlyOwner {
-        publicSaleStartTime = startTime;
+    function startRaffleSaleAt(uint256 startTime) external onlyOwner {
+        raffleSaleStartTime = startTime;
     }
 
-    function getAuctionPrice() public view returns (uint256) {
-        if (block.timestamp <= auctionSaleStartTime) {
-            return AUCTION_START_PRICE;
-        }
-        if (block.timestamp - auctionSaleStartTime >= AUCTION_DURATION) {
-            return AUCTION_END_PRICE;
-        } else {
-            uint256 steps = (block.timestamp - auctionSaleStartTime) /
-                AUCTION_DROP_INTERVAL;
-            return AUCTION_START_PRICE - (steps * AUCTION_DROP_PER_STEP);
-        }
+    function startReservedSaleAt(uint256 startTime) external onlyOwner {
+        reservedSaleStartTime = startTime;
     }
 
-    // Dutch Auction is public sale.
-    function auctionSaleMint(uint256 quantity)
-        external
-        payable
-        callerIsUser
-        whenAuctionSaleIsOn
-        nonReentrant
-    {
-        require(
-            currentAuctionAmount + quantity <= amountForAuctionSale, 
-            "Reached max auction sale supply."
-        );
-        require(
-            numberMinted(msg.sender) + quantity <= maxAmountPerWallet,
-            "Exceeds limit"
-        );
-        currentAuctionAmount ++;
-        _safeMint(msg.sender, quantity);
+    function setPreSalePrice (uint256 _preSalePrice) external onlyOwner {
+        preSalePrice = _preSalePrice;
+    }
 
-        refundIfOver(getAuctionPrice() * quantity);
+    function setRaffleSalePrice (uint256 _raffleSalePrice) external onlyOwner {
+        raffleSalePrice = _raffleSalePrice;
+    }
+
+    function setReservedSalePrice (uint256 _reservedSalePrice) external onlyOwner {
+        reservedSalePrice = _reservedSalePrice;
+    }
+
+    function setAmountForDevs (uint16 _amountForDevs) external onlyOwner {
+        require(_amountForDevs <= collectionSize, "Exceeds Max Supply.");
+        amountForDevs = _amountForDevs;
+    }
+
+    function setLimits(uint8 _limit1, uint8 _limit2) external onlyOwner {
+        limit1 = _limit1;
+        limit2 = _limit2;
+    }
+    //
+
+    function verifySigner(bytes calldata signature, address signer) 
+        public view returns (bool) {
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender));
+        bytes32 message = ECDSA.toEthSignedMessageHash(hash);
+        address recoveredAddress = ECDSA.recover(message, signature);
+        return (recoveredAddress != address(0) && recoveredAddress == signer);
     }
 
     function preSaleMint(
-      uint256 quantity,
+      uint8 quantity,
       bytes calldata signature
     )
         external
@@ -199,66 +178,91 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         whenPreSaleOn
         nonReentrant
     {
+        require(totalSupply() + quantity <= collectionSize, "Exceeds Max Supply");
+        uint8 limitAmount = limit1;
+        if (verifySigner(signature, preSaleSigner1)) {
+            limitAmount = limit2;
+        } else if (verifySigner(signature, preSaleSigner2)) {
+            limitAmount = limit1;
+        } else {
+            revert("You are not presale member.");
+        }
+
         require(
-            currentPresaleAmount + quantity <= amountForPresale, 
-            "Reached max presale supply."
-        );
-        require(
-            numberMinted(msg.sender) + quantity <= maxAmountPerWallet,
+            mintedAmountPerWallet[msg.sender][SalePhase.PreSale] + quantity <= limitAmount,
             "Exceeds limit"
         );
 
-        verifySigner(signature);
-
-        currentPresaleAmount ++;
+        mintedAmountPerWallet[msg.sender][SalePhase.PreSale] += quantity;
         _safeMint(msg.sender, quantity);
 
-        refundIfOver(PRE_SALE_PRICE * quantity);
+        refundIfOver(preSalePrice * quantity);
     }
 
-    function verifySigner(bytes calldata signature) 
-        public view {
-        bytes32 hash = keccak256(abi.encodePacked(msg.sender));
-        bytes32 message = ECDSA.toEthSignedMessageHash(hash);
-        address receivedAddress = ECDSA.recover(message, signature);
-        require(receivedAddress != address(0) && receivedAddress == preSaleSigner);
-    }
-
-    function publicSaleMint(uint256 quantity)
+    function raffleSaleMint(
+        uint8 quantity,
+        bytes calldata signature
+    )
         external
         payable
         callerIsUser
-        whenPublicSaleIsOn
+        whenRaffleSaleIsOn
         nonReentrant
     {
+        require(totalSupply() + quantity <= collectionSize, "Exceeds Max Supply");
+
+        require(verifySigner(signature, raffleSaleSigner), "You are not raffle sale member.");
         require(
-            totalSupply() + quantity <= collectionSize,
-            "reached max supply"
+            mintedAmountPerWallet[msg.sender][SalePhase.RaffleSale] + quantity <= limit1,
+            "Exceeds limit."
         );
+
+        _safeMint(msg.sender, quantity);
+        refundIfOver(raffleSalePrice * quantity);
+    }
+
+     function reservedSaleMint(
+        uint8 quantity,
+        bytes calldata signature
+    )
+        external
+        payable
+        callerIsUser
+        whenReservedSaleOn
+        nonReentrant
+    {
+        require(totalSupply() + quantity <= collectionSize, "Exceeds Max Supply");
+
+        require(verifySigner(signature, reservedSaleSigner), "You are not reserved sale member.");
         require(
-            numberMinted(msg.sender) + quantity <= maxAmountPerWallet,
-            "Exceeds limit"
+            mintedAmountPerWallet[msg.sender][SalePhase.ReservedSale] + quantity <= limit1,
+            "Exceeds limit."
         );
         _safeMint(msg.sender, quantity);
-        refundIfOver(PUBLIC_SALE_PRICE * quantity);
+        refundIfOver(raffleSalePrice * quantity);
     }
 
     // For marketing etc.
-    function devMint(uint256 quantity) external onlyOwner {
+    function devMint(uint16 quantity) external onlyOwner {
         require(
-            totalSupply() + quantity <= amountForDevs,
-            "Exceeds dev mint amount."
+            currentDevMintAmount + quantity <= amountForDevs, 
+            "Reached dev mint supply."
         );
-        require(
-            quantity % maxBatchSize == 0,
-            "can only mint a multiple of the maxBatchSize"
-        );
+        if (quantity > maxBatchSize) {
+            require(
+                quantity % maxBatchSize == 0,
+                "can only mint a multiple of the maxBatchSize"
+            );
+        }
+        uint256 batchMintAmount = quantity > maxBatchSize ? maxBatchSize : quantity;
 
-        uint256 numChunks = quantity / maxBatchSize;
+        uint256 numChunks = quantity / batchMintAmount;
 
         for (uint256 i = 0; i < numChunks; i++) {
-            _safeMint(msg.sender, maxBatchSize);
+            _safeMint(msg.sender, batchMintAmount);
         }
+
+        currentDevMintAmount += quantity;
     }
 
     function refundIfOver(uint256 price) private {
@@ -303,8 +307,16 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
         _placeHolderURI = _uri;
     }
 
-    function setPreSaleSigner(address signer) external onlyOwner {
-        preSaleSigner = signer;
+    function setSigners(
+        address _presaleSigner1, 
+        address _presaleSigner2,
+        address _raffleSaleSigner,
+        address _reservedSaleSigner
+    ) external onlyOwner {
+        preSaleSigner1 = _presaleSigner1;
+        preSaleSigner2 = _presaleSigner2;
+        raffleSaleSigner = _raffleSaleSigner;
+        reservedSaleSigner = _reservedSaleSigner;
     }
 
     // withdraw ether
@@ -314,7 +326,6 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     }
 
     // utility functions
-
     function numberMinted(address owner) public view returns (uint256) {
         return _numberMinted(owner);
     }
@@ -328,16 +339,15 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function getCurrentSaleMode() public view returns(SalePhase) {
-        if ( currentSalePhase == SalePhase.None) {
+        if (!saleEnabled) {
             return SalePhase.None;
         }
 
-        if (block.timestamp >= auctionSaleStartTime && block.timestamp <= auctionSaleStartTime + AUCTION_DURATION) {
-            return SalePhase.AuctionSale;
+        if (block.timestamp >= reservedSaleStartTime) {
+            return SalePhase.ReservedSale;
         }
-
-        if (block.timestamp >= publicSaleStartTime) {
-            return SalePhase.PublicSale;
+        if (block.timestamp >= raffleSaleStartTime) {
+            return SalePhase.RaffleSale;
         }
         if (block.timestamp >= preSaleStartTime) {
             return SalePhase.PreSale;

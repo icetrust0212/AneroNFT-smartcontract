@@ -4,27 +4,21 @@ import { calculate_whitelist_root } from '../whitelist/utils';
 const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { getSigners }, network }) {
   const deployer = (await getSigners())[0];
  
-  const maxBatchSize_ = 5;
+  const maxBatchSize_ = 20;
   const collectionSize_ = 7777;
-  const amountForAuctionSale = 3000;
-  const amountForPresale = 2000;
-  const amountForDevs = 100;
+  const amountForDevs = 200;
   const baseTokenURI = "https://gateway.pinata.cloud/ipfs/QmchQb5AmN17JyLDMFimADLqvJ6o9iy3mJseDLQcwqxWcy/";
   const placeHolderURI = "";
-
-  const root = calculate_whitelist_root();
 
   const contractDeployed = await deploy('Anero', {
     from: deployer.address,
     log: true,
-    skipIfAlreadyDeployed: false,
+    skipIfAlreadyDeployed: true,
     args: [
       baseTokenURI,
       placeHolderURI,
       maxBatchSize_,
       collectionSize_,
-      amountForAuctionSale,
-      amountForPresale,
       amountForDevs
     ]
   });

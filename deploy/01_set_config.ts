@@ -1,6 +1,6 @@
 import { DeployFunction } from 'hardhat-deploy/types';
 
-const fn: DeployFunction = async function ({ deployments: { deploy, get, execute }, ethers: { getSigners, provider }, network }) {
+const fn: DeployFunction = async function ({ deployments: { deploy, get, execute }, ethers: { getSigners, provider, utils }, network }) {
   const deployer = (await getSigners())[0];
 
   const preSaleSigner1 = "0x196f0822C65C7461913f500297F4A245487309e3";
@@ -48,7 +48,19 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
   );
 
   // Set sale enable
+  await execute(
+    'Anero',
+    {from: deployer.address, log: true},
+    'toggleSale',
+    "true"
+  )
   // Set sale prices
+  await execute(
+    'Anero',
+    {from: deployer.address, log: true},
+    'setReservedSalePrice',
+    utils.parseEther('0.35')
+  )
 };
 fn.skip = async (hre) => {
   return false;

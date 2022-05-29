@@ -180,9 +180,9 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     {
         require(totalSupply() + quantity <= collectionSize, "Exceeds Max Supply");
         uint8 limitAmount = limit1;
-        if (verifySigner(signature, preSaleSigner1)) {
+        if (verifySigner(signature, preSaleSigner2)) {
             limitAmount = limit2;
-        } else if (verifySigner(signature, preSaleSigner2)) {
+        } else if (verifySigner(signature, preSaleSigner1)) {
             limitAmount = limit1;
         } else {
             revert("You are not presale member.");
@@ -216,6 +216,7 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
             mintedAmountPerWallet[msg.sender][SalePhase.RaffleSale] + quantity <= limit1,
             "Exceeds limit."
         );
+        mintedAmountPerWallet[msg.sender][SalePhase.RaffleSale] += quantity;
 
         _safeMint(msg.sender, quantity);
         refundIfOver(raffleSalePrice * quantity);
@@ -238,8 +239,10 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
             mintedAmountPerWallet[msg.sender][SalePhase.ReservedSale] + quantity <= limit1,
             "Exceeds limit."
         );
+        mintedAmountPerWallet[msg.sender][SalePhase.ReservedSale] += quantity;
+
         _safeMint(msg.sender, quantity);
-        refundIfOver(raffleSalePrice * quantity);
+        refundIfOver(reservedSalePrice * quantity);
     }
 
     // For marketing etc.

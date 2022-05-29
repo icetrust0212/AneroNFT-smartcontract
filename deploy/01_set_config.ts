@@ -54,12 +54,26 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
     'toggleSale',
     "true"
   )
-  // Set sale prices
+  // Set sale prices - test.
+  await execute(
+    'Anero',
+    {from: deployer.address, log: true},
+    'setPreSalePrice',
+    utils.parseEther('0.05')
+  )
+
+  await execute(
+    'Anero',
+    {from: deployer.address, log: true},
+    'setRaffleSalePrice',
+    utils.parseEther('0.1')
+  )
+
   await execute(
     'Anero',
     {from: deployer.address, log: true},
     'setReservedSalePrice',
-    utils.parseEther('0.35')
+    utils.parseEther('0.15')
   )
 };
 fn.skip = async (hre) => {

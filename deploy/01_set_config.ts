@@ -1,61 +1,54 @@
 import { DeployFunction } from 'hardhat-deploy/types';
-import { calculate_whitelist_root } from '../whitelist/utils';
 
 const fn: DeployFunction = async function ({ deployments: { deploy, get, execute }, ethers: { getSigners, provider }, network }) {
   const deployer = (await getSigners())[0];
-  const AneroNFT = await get('Anero');
-  const signerAddress = "0xeA860Ae1b9aEB06b674664c5496D2F8Ee7C4BBFA";
-  const baseTokenURI = "https://gateway.pinata.com/";
-  const root = calculate_whitelist_root();
+
+  const preSaleSigner1 = "0x196f0822C65C7461913f500297F4A245487309e3";
+  const preSaleSigner2 = "0xe29Fb7FadE1C5a15b3CE09eD1a95793F399219fa";
+  const raffleSaleSigner = "0x2AA770bE1440b4Ff7845F03A19af50b39d68BD96";
+  const reservedSaleSigner = "0xBF064b67385d716Cb97e2842283E4e4Be20E2b6f";
+
   const currentTime = (await provider.getBlock('latest')).timestamp
 
-  const auctionStartTIme = currentTime + 10;
   const preSaleStartTime = currentTime + 10;
-  const publicSaleStartTime = currentTime + 300;
+  const raffleSaleStartTime = currentTime + 610;
+  const reservedSaleStartTime = currentTime + 1210;
 
-  //Activate auction
-  // try {
-  //   await execute(
-  //     'Anero',
-  //     {from: deployer.address, log: true},
-  //     'setAuctionSaleActive'
-  //   );
-  // } catch(e) {
-  //   console.log(e);
-  // }
-  
-
-  // set auction start time
-  // await execute(
-  //   'Anero',
-  //   {from: deployer.address, log: true},
-  //   'startAuctionSaleAt',
-  //   currentTime
-  // )
-
-  // set presale start time
-  // await execute(
-  //   'Anero',
-  //   {from: deployer.address, log: true},
-  //   'startPreSaleAt',
-  //   preSaleStartTime
-  // )
-
-  // set public sale start time
-  // await execute(
-  //   'Anero',
-  //   {from: deployer.address, log: true},
-  //   'startPublicSaleAt',
-  //   publicSaleStartTime
-  // )
-
-  //set presale signer
+  //set Signers
   await execute(
     'Anero',
     {from: deployer.address, log: true},
-    'setPreSaleSigner',
-    signerAddress
+    'setSigners',
+    preSaleSigner1,
+    preSaleSigner2,
+    raffleSaleSigner,
+    reservedSaleSigner
   );
+
+  // Set sale start times
+  await execute(
+    'Anero',
+    {from: deployer.address, log: true},
+    'startPreSaleAt',
+    preSaleStartTime
+  );
+
+  await execute(
+    'Anero',
+    {from: deployer.address, log: true},
+    'startRaffleSaleAt',
+    raffleSaleStartTime
+  );
+
+  await execute(
+    'Anero',
+    {from: deployer.address, log: true},
+    'startReservedSaleAt',
+    reservedSaleStartTime
+  );
+
+  // Set sale enable
+  // Set sale prices
 };
 fn.skip = async (hre) => {
   return false;

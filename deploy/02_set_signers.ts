@@ -3,10 +3,10 @@ import { DeployFunction } from 'hardhat-deploy/types';
 const fn: DeployFunction = async function ({ deployments: { deploy, get, execute }, ethers: { getSigners, provider, utils }, network }) {
   const deployer = (await getSigners())[0];
 
-  const preSaleSigner1 = "0x196f0822C65C7461913f500297F4A245487309e3";
-  const preSaleSigner2 = "0xe29Fb7FadE1C5a15b3CE09eD1a95793F399219fa";
-  const raffleSaleSigner = "0x2AA770bE1440b4Ff7845F03A19af50b39d68BD96";
-  const reservedSaleSigner = "0xBF064b67385d716Cb97e2842283E4e4Be20E2b6f";
+  const preSaleSigner1 = "0x5e6cCfBa0aB8Bf8BDEE5ABe9f6eE0BB2f274a609";
+  const preSaleSigner2 = "0x6756d75ba11740483EC9d309e2c091a028d0915d";
+  const raffleSaleSigner = "0xe2e831828bba4b77193D2E4587cb71e6BA64712b";
+  const reservedSaleSigner = "0xd04A914B3EFae9721EcBbB7E8A9E5B5E11b3087E";
 
   //set Signers
   await execute(

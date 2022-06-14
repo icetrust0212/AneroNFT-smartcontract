@@ -4,11 +4,17 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
   const deployer = (await getSigners())[0];
 
   const currentTime = (await provider.getBlock('latest')).timestamp
+  // 1655262000
+  // 1655348400
+  // 1655391600
+  // const preSaleStartTime = currentTime + 600; // 5min
+  // const raffleSaleStartTime = preSaleStartTime + 600; // 10 mins
+  // const reservedSaleStartTime = raffleSaleStartTime + 600; // 10 mins
+  const preSaleStartTime = 1655262000;
+  const raffleSaleStartTime = 1655348400;
+  const reservedSaleStartTime = 1655391600;
 
-  const preSaleStartTime = currentTime + 300; // 5min
-  const raffleSaleStartTime = preSaleStartTime + 600; // 10 mins
-  const reservedSaleStartTime = raffleSaleStartTime + 600; // 10 mins
-
+  // console.log('time: ', preSaleStartTime * 1000, raffleSaleStartTime * 1000, reservedSaleStartTime * 1000);
   // Set sale start times
   await execute(
     'Anero',

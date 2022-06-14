@@ -30,9 +30,9 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
     uint256 public reservedSaleStartTime;
 
     // Price for presale and raffle sale, reserved sale
-    uint256 public preSalePrice = 0.15 ether;
-    uint256 public raffleSalePrice = 0.25 ether;
-    uint256 public reservedSalePrice = 0.25 ether;
+    uint256 public preSalePrice = 0.09 ether;
+    uint256 public raffleSalePrice = 0.14 ether;
+    uint256 public reservedSalePrice = 0.14 ether;
 
     // Signer for verification
     address private preSaleSigner1;
@@ -247,6 +247,8 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     // For marketing etc.
     function devMint(uint16 quantity) external onlyOwner {
+        require(totalSupply() + quantity <= collectionSize, "Exceeds Max Supply");
+        
         require(
             currentDevMintAmount + quantity <= amountForDevs, 
             "Reached dev mint supply."

@@ -8,25 +8,25 @@ const fn: DeployFunction = async function ({ deployments: { deploy, get, execute
     'Anero',
     {from: deployer.address, log: true},
     'setPreSalePrice',
-    utils.parseEther('0.05')
+    utils.parseEther('0.09')
   )
 
   await execute(
     'Anero',
     {from: deployer.address, log: true},
     'setRaffleSalePrice',
-    utils.parseEther('0.1')
+    utils.parseEther('0.14')
   )
 
   await execute(
     'Anero',
     {from: deployer.address, log: true},
     'setReservedSalePrice',
-    utils.parseEther('0.15')
+    utils.parseEther('0.14')
   )
 };
 fn.skip = async (hre) => {
-  return false;
+  return true;
   // Skip this on kovan.
   const chain = parseInt(await hre.getChainId());
   return chain != 1;

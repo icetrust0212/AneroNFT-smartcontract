@@ -8,7 +8,7 @@ const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { 
   const collectionSize_ = 7777;
   const amountForDevs = 200;
   const baseTokenURI = "https://gateway.pinata.cloud/ipfs/QmchQb5AmN17JyLDMFimADLqvJ6o9iy3mJseDLQcwqxWcy/";
-  const placeHolderURI = "";
+  const placeHolderURI = "https://aneroverse.mypinata.cloud/ipfs/Qmew9Ja4rsS4gz8CmKbqtZ3LvodmZwCogSQptxsVdYvzgN";
 
   const contractDeployed = await deploy('Anero', {
     from: deployer.address,

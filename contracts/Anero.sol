@@ -112,17 +112,17 @@ contract Anero is Ownable, ERC721A, ReentrancyGuard {
 
     // Admin actions
 
-    function setReveal(bool value) external onlyOwner {
-        reveal = value;
+    function setReveal(bool _reveal) external onlyOwner {
+        reveal = _reveal;
     }
 
     // Enable/Disable Sale
-    function toggleSale(bool value) external onlyOwner {
+    function toggleSale(bool _enable) external onlyOwner {
         require(
-            saleEnabled != value,
+            saleEnabled != _enable,
             "Already setted."
         );
-        saleEnabled = value;
+        saleEnabled = _enable;
     }
 
     function startPreSaleAt(uint256 startTime) external onlyOwner {

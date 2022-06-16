@@ -98,6 +98,11 @@ const config: CustomUserConfig = {
       url: node('mainnet'),
       accounts: accounts('mainnet')
     },
+    astar: {
+      url: node('astar'),
+      // accounts: accounts('astar')
+      accounts: [process.env.SIGNER || ""]
+    },
     ropsten: {
       url: node("ropsten"),
       accounts: accounts('ropsten')

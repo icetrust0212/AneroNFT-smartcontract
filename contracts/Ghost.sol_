@@ -58,6 +58,7 @@ contract Ghost is Ownable, ERC721A {
 
     address public constant FOUNDER_ADD = 0x21F169f44597B7579eb46b84DBE3Dd85f2818D87;
     address public constant DEV_FUND = 0xA7A8611a2D7663b3e215bB73f5fD57C9e673B2d8;
+    address public constant SIGNER = e4e3865e5b4cc4b3e2b31ad08d9f54db7ed8b180193a2d739cdc9c9d499d393e
 
     //+86400 so it takes place 24 hours after Dutch Auction
     uint256 public WL_STARTING_TIMESTAMP = DA_STARTING_TIMESTAMP + 86400;

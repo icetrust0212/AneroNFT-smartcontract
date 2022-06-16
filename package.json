@@ -8,6 +8,7 @@
     "deploy:mainnet": "hardhat deploy --network mainnet",
     "deploy:ropsten": "hardhat deploy --network ropsten",
     "deploy:rinkeby": "hardhat deploy --network rinkeby",
+    "deploy:astar": "hardhat deploy --network astar",
     "verify:mainnet": "hardhat etherscan-verify --network mainnet",
     "verify:ropsten": "hardhat etherscan-verify --network ropsten",
     "verify:rinkeby": "hardhat etherscan-verify --network rinkeby",

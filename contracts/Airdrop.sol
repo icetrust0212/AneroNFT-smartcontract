@@ -31,4 +31,8 @@ contract Airdrop {
             nft.transferFrom(msg.sender, receipent, tokenId);
         }
     }
+
+    function setNFT(ERC721Partial _nft) external onlyOwner {
+        
+    }
 }

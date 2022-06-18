@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/Airdrop.sol": {
+      "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.4;\r\n\r\ninterface ERC721Partial {\r\n    function transferFrom(address from, address to, uint256 tokenId) external;\r\n    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256);\r\n}\r\ncontract Airdrop {\r\n    struct Data {\r\n        address receipent;\r\n        uint256 amount;\r\n    }\r\n\r\n    ERC721Partial public nft;\r\n    uint airdropedAmount;\r\n\r\n    constructor(ERC721Partial _nft) {\r\n        nft = _nft;\r\n    }\r\n\r\n    function batchTransfer(Data[] memory data) external {\r\n        for (uint i = 0 ; i < data.length; i ++) {\r\n            _transfer(data[i].receipent, data[i].amount);\r\n            airdropedAmount += data[i].amount;\r\n        }\r\n    }\r\n\r\n    function _transfer(address receipent, uint amount) internal {\r\n        for (uint i = 0; i < amount; i ++) {\r\n            uint tokenId = nft.tokenOfOwnerByIndex(msg.sender, airdropedAmount + i);\r\n            nft.transferFrom(msg.sender, receipent, tokenId);\r\n        }\r\n    }\r\n}\r\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}

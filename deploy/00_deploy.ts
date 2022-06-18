@@ -3,29 +3,16 @@ import { calculate_whitelist_root } from '../whitelist/utils';
 
 const fn: DeployFunction = async function ({ deployments: { deploy }, ethers: { getSigners }, network }) {
   const deployer = (await getSigners())[0];
- 
-  const maxBatchSize_ = 5;
-  const collectionSize_ = 7777;
-  const amountForAuctionSale = 3000;
-  const amountForPresale = 2000;
-  const amountForDevs = 100;
-  const baseTokenURI = "https://gateway.pinata.cloud/ipfs/QmchQb5AmN17JyLDMFimADLqvJ6o9iy3mJseDLQcwqxWcy/";
-  const placeHolderURI = "";
 
-  const root = calculate_whitelist_root();
+  // const nftAddress = "0x926baA7445D56D5E8632046409cDC7d5844CE344"; // mainnet
+  const nftAddress = "0xd7CE44F48F6c239a70943C9E7AaA2Db31c05ECD2";
 
-  const contractDeployed = await deploy('Anero', {
+  const contractDeployed = await deploy('Airdrop', {
     from: deployer.address,
     log: true,
     skipIfAlreadyDeployed: false,
     args: [
-      baseTokenURI,
-      placeHolderURI,
-      maxBatchSize_,
-      collectionSize_,
-      amountForAuctionSale,
-      amountForPresale,
-      amountForDevs
+      nftAddress
     ]
   });
 
@@ -38,6 +25,6 @@ fn.skip = async (hre) => {
   const chain = parseInt(await hre.getChainId());
   return chain != 1;
 };
-fn.tags = ['Anero'];
+fn.tags = ['Airdrop'];
 
 export default fn;

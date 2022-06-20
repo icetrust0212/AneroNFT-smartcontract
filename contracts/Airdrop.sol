@@ -26,7 +26,7 @@ contract Airdrop is Ownable {
     /// @notice Tokens on the given ERC-721 contract are transferred from you to a recipient.
     /// @param  amount      Which token IDs are transferred?
     function claim(uint16 amount, bytes calldata signature) external {
-        require(verifySigner(signature), "Invalid signature."); 
+        require(verifySigner(signature, amount), "Invalid signature."); 
         require(totalAirdropCount + amount <= 1858, "Exceeds claim amount");
         require(!claimed[msg.sender], "Already claimed.");
 
@@ -39,9 +39,9 @@ contract Airdrop is Ownable {
     }
 
     //
-    function verifySigner(bytes calldata signature) 
+    function verifySigner(bytes calldata signature, uint16 amount) 
         internal view returns (bool) {
-        bytes32 hash = keccak256(abi.encodePacked(msg.sender));
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender, amount));
         bytes32 message = ECDSA.toEthSignedMessageHash(hash);
         address recoveredAddress = ECDSA.recover(message, signature);
         return (recoveredAddress != address(0) && recoveredAddress == signer);

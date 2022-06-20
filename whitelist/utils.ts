@@ -8,6 +8,7 @@
  import { MerkleTree } from 'merkletreejs';
  import keccak256 from 'keccak256';
  import whitelistArray from './data';
+  import { ethers } from 'ethers';
  
  export const calculate_whitelist_root = () => {
      const leaves = whitelistArray.map(v => keccak256(v));
@@ -24,4 +25,15 @@
     const proof = tree.getHexProof(leaf);
     const verified = tree.verify(proof, leaf, root);
     return { proof, leaf, verified };
-  };
+};
+
+export async function signMessage(address: string, amount: number, signer: string) {
+  const wallet = new ethers.Wallet(`0x${signer}`);
+  console.log(wallet.address, wallet._isSigner);
+ 
+  let message = ethers.utils.solidityPack(["address", "uint16"], [address, amount]);
+  message = ethers.utils.solidityKeccak256(["bytes"], [message]);
+  const signature = await wallet.signMessage(ethers.utils.arrayify(message));
+
+  return signature;
+}

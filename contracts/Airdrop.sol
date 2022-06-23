@@ -13,6 +13,7 @@ contract Airdrop is Ownable {
 
     ERC721Partial public nft;
     uint16 public totalAirdropCount;
+    uint16 public airdropAmount = 1858;
     address signer;
     address treasury;
     mapping(address => bool) public claimed;
@@ -27,7 +28,7 @@ contract Airdrop is Ownable {
     /// @param  amount      Which token IDs are transferred?
     function claim(uint16 amount, bytes calldata signature) external {
         require(verifySigner(signature, amount), "Invalid signature."); 
-        require(totalAirdropCount + amount <= 1858, "Exceeds claim amount");
+        require(totalAirdropCount + amount <= airdropAmount, "Exceeds claim amount");
         require(!claimed[msg.sender], "Already claimed.");
 
         for (uint16 index = 0; index < amount; index ++) {
@@ -53,5 +54,9 @@ contract Airdrop is Ownable {
 
     function setTreasury(address _treasury) external onlyOwner {
         treasury = _treasury;
+    }
+
+    function setAirdropAmount(uint16 _airdropAmount) external onlyOwner {
+        airdropAmount = _airdropAmount;
     }
 }

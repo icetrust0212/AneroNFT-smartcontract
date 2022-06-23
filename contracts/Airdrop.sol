@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.4;
 
 
@@ -413,14 +412,14 @@ contract Airdrop is Ownable {
 
     /// @notice Tokens on the given ERC-721 contract are transferred from you to a recipient.
     /// @param  amount      Which token IDs are transferred?
-    function claim(uint16 amount, bytes calldata signature) external {
+    function claim(uint16 amount, uint256[] memory tokenIDs, bytes calldata signature) external {
         require(verifySigner(signature, amount), "Invalid signature."); 
         require(totalAirdropCount + amount <= airdropAmount, "Exceeds claim amount");
         require(!claimed[msg.sender], "Already claimed.");
+        require(tokenIDs.length == amount, "Invalid token ID and amount");
 
         for (uint16 index = 0; index < amount; index ++) {
-            uint256 tokenId = nft.tokenOfOwnerByIndex(treasury, index);
-            nft.transferFrom(treasury,msg.sender, tokenId);
+            nft.transferFrom(treasury,msg.sender, tokenIDs[index]);
         }
         claimed[msg.sender] = true;
         totalAirdropCount += amount;

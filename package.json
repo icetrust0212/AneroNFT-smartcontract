@@ -11,7 +11,8 @@
     "verify:mainnet": "hardhat etherscan-verify --network mainnet",
     "verify:ropsten": "hardhat etherscan-verify --network ropsten",
     "verify:rinkeby": "hardhat etherscan-verify --network rinkeby",
-    "export:mainnet": "hardhat export --network mainnet --export deployments/mainnet.json"
+    "export:mainnet": "hardhat export --network mainnet --export deployments/mainnet.json",
+    "build-contracts":"sol-merger --export-plugin SPDXLicenseRemovePlugin \"./contracts-origin/*.sol\" ./contracts"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.5",
